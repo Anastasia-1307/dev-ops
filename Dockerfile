@@ -4,20 +4,27 @@ ARG NODE_VERSION=24.13.0
 
 FROM node:${NODE_VERSION}-alpine
 
-# Install Bun
-RUN npm install -g bun
+# Nu setăm NODE_ENV=production pentru dev
+ENV NODE_ENV=development
+
+# Install Bun globally and OpenSSL
+RUN npm install -g bun && \
+    apk add --no-cache openssl libssl3 libcrypto3
 
 WORKDIR /usr/src/app
 
-# Install deps first (cache friendly)
-COPY package.json ./
-RUN bun install
+# Copy deps first (cache friendly)
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
-# Copy source
+# Copy all source files
 COPY . .
 
-# Expose the port
-EXPOSE 3000
+# Generate Prisma Client for Linux
+RUN npx prisma generate
 
-# Run the application in development mode
+# Expose port for dev server
+EXPOSE 5000
+
+# Run dev server
 CMD ["bun", "run", "dev"]
